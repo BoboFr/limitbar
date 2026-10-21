@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check tag matches Cargo.toml version
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path Cargo.toml -Pattern '^version\s*=\s*"(.+)"').Matches[0].Groups[1].Value
+          if ("v$version" -ne "${{ github.ref_name }}") {
+            throw "Tag ${{ github.ref_name }} does not match Cargo.toml version $version"
+          }
+
+      - name: Build
+        run: cargo build --release --locked
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $exe = "dist/limitbar-${{ github.ref_name }}-windows-x64.exe"
+          Copy-Item target/release/limitbar.exe $exe
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  $(Split-Path $exe -Leaf)" | Out-File -Encoding ascii "$exe.sha256"
+
+      - name: Create release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = @'
+          Windows 11 tray widget showing live AI usage limits for Claude Code, Codex and Antigravity.
+
+          **Install:** download `limitbar-${{ github.ref_name }}-windows-x64.exe` and run it; the icon appears next to the clock (or in the `^` overflow).
+          The executable is not code-signed yet: if SmartScreen warns, choose *More info → Run anyway*.
+          '@
+          gh release create "${{ github.ref_name }}" dist/* `
+            --title "limitbar ${{ github.ref_name }}" `
+            --notes $notes `
+            --generate-notes

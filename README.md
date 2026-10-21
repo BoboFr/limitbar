@@ -39,9 +39,12 @@ Anything else (Grok, a team quota…) can be added by hand, see
 
 ## Install
 
-Download `limitbar.exe` from the latest
-[CI run](https://github.com/BoboFr/limitbar/actions/workflows/ci.yml) artifacts,
-or build it:
+Download `limitbar-vX.Y.Z-windows-x64.exe` from the
+[latest release](https://github.com/BoboFr/limitbar/releases/latest) and run it.
+The executable is not code-signed yet: if SmartScreen warns, choose
+*More info → Run anyway*. A `.sha256` file is attached to check the download.
+
+Or build it:
 
 ```powershell
 cargo build --release
