@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Clippy
+        run: cargo clippy --release --locked -- -D warnings
+
+      - name: Build
+        run: cargo build --release --locked
+
+      - name: Upload limitbar.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: limitbar-windows-x64
+          path: target/release/limitbar.exe
+          if-no-files-found: error
